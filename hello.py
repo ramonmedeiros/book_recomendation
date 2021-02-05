@@ -26,6 +26,39 @@ df_ratings = pd.read_csv(
     usecols=['user', 'isbn', 'rating'],
     dtype={'user': 'int32', 'isbn': 'str', 'rating': 'float32'})
 
+
+#plt.rc("font", size=15)
+#df_ratings.rating.value_counts(sort=False).plot(kind='bar')
+#plt.title('Rating Distribution\n')
+#plt.xlabel('Rating')
+#plt.ylabel('Count')
+#plt.savefig('system1.png', bbox_inches='tight')
+#plt.show()
+
+# count ratings
+rating_count = pd.DataFrame(df_ratings.groupby('isbn')['rating'].count())
+rating_count.sort_values('rating', ascending=False).head()
+
+# make average of it
+average_rating = pd.DataFrame(df_ratings.groupby('isbn')['rating'].mean())
+average_rating['ratingCount'] = pd.DataFrame(df_ratings.groupby('isbn')['rating'].count())
+average_rating.sort_values('ratingCount', ascending=False).head()
+
+# remove small ratings?
+counts1 = df_ratings['user'].value_counts()
+ratings = df_ratings[df_ratings['user'].isin(counts1[counts1 >= 200].index)]
+counts = df_ratings['rating'].value_counts()
+ratings = df_ratings[df_ratings['rating'].isin(counts[counts >= 100].index)]
+
+# merge
+import pdb;pdb.set_trace()
+ratings_pivot = ratings.pivot(index='user', columns='isbn').rating
+userID = ratings_pivot.index
+ISBN = ratings_pivot.columns
+print(ratings_pivot.shape)
+
+ratings_pivot.head()
+
 # function to return recommended books - this will be tested
 def get_recommends(book = ""):
     X = np.array(df_books['title'])
