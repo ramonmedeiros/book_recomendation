@@ -26,15 +26,6 @@ df_ratings = pd.read_csv(
     usecols=['user', 'isbn', 'rating'],
     dtype={'user': 'int32', 'isbn': 'str', 'rating': 'float32'})
 
-
-#plt.rc("font", size=15)
-#df_ratings.rating.value_counts(sort=False).plot(kind='bar')
-#plt.title('Rating Distribution\n')
-#plt.xlabel('Rating')
-#plt.ylabel('Count')
-#plt.savefig('system1.png', bbox_inches='tight')
-#plt.show()
-
 # count ratings
 rating_count = pd.DataFrame(df_ratings.groupby('isbn')['rating'].count())
 rating_count.sort_values('rating', ascending=False).head()
@@ -44,27 +35,32 @@ average_rating = pd.DataFrame(df_ratings.groupby('isbn')['rating'].mean())
 average_rating['ratingCount'] = pd.DataFrame(df_ratings.groupby('isbn')['rating'].count())
 average_rating.sort_values('ratingCount', ascending=False).head()
 
-# remove small ratings?
-counts1 = df_ratings['user'].value_counts()
-ratings = df_ratings[df_ratings['user'].isin(counts1[counts1 >= 200].index)]
-counts = df_ratings['rating'].value_counts()
-ratings = df_ratings[df_ratings['rating'].isin(counts[counts >= 100].index)]
-
 # merge
-import pdb;pdb.set_trace()
-ratings_pivot = ratings.pivot(index='user', columns='isbn').rating
-userID = ratings_pivot.index
-ISBN = ratings_pivot.columns
-print(ratings_pivot.shape)
+combine_book_rating = pd.merge(average_rating, df_books, on='isbn')
 
-ratings_pivot.head()
+import ipdb;ipdb.set_trace()
+# remove duplicated
+combine_book_rating = combine_book_rating.drop_duplicates(['title'])
+
+# pivot and generate matrix
+combine_rating_pivot = combine_book_rating.pivot(index = 'title', columns='ratingCount', values = 'rating').fillna(0)
+combine_rating_matrix = csr_matrix(combine_rating_pivot.values)
+
+# create model
+model = NearestNeighbors(metric = 'cosine', algorithm = 'brute')
+model.fit(combine_rating_matrix)
 
 # function to return recommended books - this will be tested
 def get_recommends(book = ""):
-    X = np.array(df_books['title'])
-    nbrs = NearestNeighbors(n_neighbors=5, algorithm='ball_tree').fit(X)
-    distances, indices = nbrs.kneighbors(X)
-    return distances[5]
+    import ipdb;ipdb.set_trace()
+    distances, indices = model.kneighbors(combine_book_rating.iloc[book, :].reshape(1, -1), n_neighbors = 6)
+
+    for i in range(0, len(distances.flatten())):
+        if i == 0:
+            print('Recommendations for {0}:\n'.format(combine_book_rating.index[query_index]))
+        else:
+            print('{0}: {1}, with distance of {2}:'.format(i, combine_book_rating.index[indices.flatten()[i]], distances.flatten()[i]))
+        return distances[5]
 
 books = get_recommends("Where the Heart Is (Oprah's Book Club (Paperback))")
 print(books)
