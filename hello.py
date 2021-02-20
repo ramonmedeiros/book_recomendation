@@ -38,7 +38,6 @@ average_rating.sort_values('ratingCount', ascending=False).head()
 # merge
 combine_book_rating = pd.merge(average_rating, df_books, on='isbn')
 
-import ipdb;ipdb.set_trace()
 # remove duplicated
 combine_book_rating = combine_book_rating.drop_duplicates(['title'])
 
@@ -52,7 +51,10 @@ model.fit(combine_rating_matrix)
 
 # function to return recommended books - this will be tested
 def get_recommends(book = ""):
-    import ipdb;ipdb.set_trace()
+
+    for i in combine_book_rating:
+        import ipdb;ipdb.set_trace()
+
     distances, indices = model.kneighbors(combine_book_rating.iloc[book, :].reshape(1, -1), n_neighbors = 6)
 
     for i in range(0, len(distances.flatten())):
