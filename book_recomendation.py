@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-# import libraries (you may add additional imports but you may not have to)
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
@@ -31,7 +29,6 @@ df_ratings = pd.read_csv(
     dtype={'userId': 'int32', 'movieId': 'str', 'rating': 'float32'})
 
 df = pd.merge(df_ratings,df_books,on='movieId')
-df.head()
 
 combine_movie_rating = df.dropna(axis = 0, subset = ['title'])
 movie_ratingCount = (combine_movie_rating.
@@ -41,51 +38,50 @@ movie_ratingCount = (combine_movie_rating.
      rename(columns = {'rating': 'totalRatingCount'})
      [['title', 'totalRatingCount']]
     )
-movie_ratingCount.head()
 
 rating_with_totalRatingCount = combine_movie_rating.merge(movie_ratingCount, left_on = 'title', right_on = 'title', how = 'left')
-rating_with_totalRatingCount.head()
 
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
 popularity_threshold = 50
 rating_popular_movie= rating_with_totalRatingCount.query('totalRatingCount >= @popularity_threshold')
-rating_popular_movie.head()
 
 movie_features_df=rating_popular_movie.pivot_table(index='title',columns='userId',values='rating').fillna(0)
-movie_features_df.head()
+movie_features_df_matrix = csr_matrix(movie_features_df.values)
 
 # function to return recommended books - this will be tested
 def get_recommends(book = ""):
-    movie_features_df_matrix = csr_matrix(movie_features_df.values)
     model_knn = NearestNeighbors(metric = 'cosine', algorithm = 'brute')
     model_knn.fit(movie_features_df_matrix)
 
-    ret = []
+    # found book TODO: user a better search
     for query_index in range(len(movie_features_df)):
         if movie_features_df.index[query_index] == book:
+            break
 
-            # creating return structure
-           ret.append(movie_features_df.index[query_index])
-           books = []
-
-           distances, indices = model_knn.kneighbors(movie_features_df.iloc[query_index,:].values.reshape(1, -1), n_neighbors = 6)
-           # now we located the book. lets show the recomendations
-           for i in range(1, len(distances.flatten())):
-               books.append([movie_features_df.index[indices.flatten()[i]], distances.flatten()[i]])
-    ret.append(books)
+    # creating return structure
+    ret = [movie_features_df.index[query_index], []]
+    distances, indices = model_knn.kneighbors(movie_features_df.iloc[query_index,:].values.reshape(1, -1), n_neighbors = 5)
+    # now we located the book. lets show the recomendations
+    for i in range(1, len(distances.flatten())):
+        ret[1].append([movie_features_df.index[indices.flatten()[i]], distances.flatten()[i]])
     return ret
-
-books = get_recommends("Where the Heart Is (Oprah's Book Club (Paperback))")
-print(books)
 
 def test_book_recommendation():
   test_pass = True
   recommends = get_recommends("Where the Heart Is (Oprah's Book Club (Paperback))")
   if recommends[0] != "Where the Heart Is (Oprah's Book Club (Paperback))":
     test_pass = False
+
+  print(recommends)
+  print()
+
   recommended_books = ["I'll Be Seeing You", 'The Weight of Water', 'The Surgeon', 'I Know This Much Is True']
   recommended_books_dist = [0.8, 0.77, 0.77, 0.77]
+
+  print(recommended_books)
+  print(recommended_books_dist)
+
   for i in range(2):
     if recommends[1][i][0] not in recommended_books:
       test_pass = False
