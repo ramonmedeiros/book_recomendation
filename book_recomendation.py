@@ -38,7 +38,7 @@ user_ratingCount = (df_ratings.
      rename(columns = {'rating': 'totalRatingCount'})
      [['userId', 'totalRatingCount']]
 )
-users_to_remove = user_ratingCount.query('totalRatingCount >= 200').userId.tolist()
+users_to_remove = user_ratingCount.query('totalRatingCount > 200').userId.tolist()
 
 # merge rating and catalog by bookId
 df = pd.merge(df_ratings,df_books,on='bookId')
@@ -56,13 +56,13 @@ rating_with_totalRatingCount = df.merge(book_ratingCount, left_on = 'title', rig
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
 # remove books with less than 100 ratings
-rating_popular_movie = rating_with_totalRatingCount.query('totalRatingCount >= 100')
+rating_popular_movie = rating_with_totalRatingCount.query('totalRatingCount > 100')
 
 # remove from the dataset users with less than 200 ratings 
 rating_popular_movie = rating_popular_movie[rating_popular_movie['userId'].isin(users_to_remove)]
 
 # drop duplicates
-rating_popular_movie.drop_duplicates(subset=['title'])
+#rating_popular_movie.drop_duplicates(subset=['title'], keep=False, inplace=True)
 
 # pivot table and create matrix
 book_features_df = rating_popular_movie.pivot_table(index='title',columns='userId',values='rating').fillna(0)
@@ -83,7 +83,7 @@ def get_recommends(book = ""):
     distances, indices = model_knn.kneighbors(book_features_df.iloc[query_index,:].values.reshape(1, -1))
     # now we located the book. lets show the recomendations
     for i in range(1, len(distances.flatten())):
-        ret[1].append([book_features_df.index[indices.flatten()[i]], distances.flatten()[i]])
+        ret[1].insert(0, [book_features_df.index[indices.flatten()[i]], distances.flatten()[i]])
     return ret
 
 def test_book_recommendation():
